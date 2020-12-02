@@ -1,0 +1,5 @@
+requests_toolbelt==0.9.1
+google-auth==1.23.0
+requests==2.25.0
+six==1.15.0
+google-cloud-storage==1.33.0

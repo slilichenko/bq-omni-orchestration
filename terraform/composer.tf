@@ -9,7 +9,7 @@ resource "google_composer_environment" "bq-demo" {
     }
   }
 
-  depends_on = [google_project_iam_member.composer-worker]
+  depends_on = [google_project_iam_member.composer-worker-role]
 }
 
 resource "google_service_account" "composer-worker-sa" {
@@ -17,7 +17,12 @@ resource "google_service_account" "composer-worker-sa" {
   display_name = "Service Account for Composer Environment"
 }
 
-resource "google_project_iam_member" "composer-worker" {
+resource "google_project_iam_member" "composer-worker-role" {
   role   = "roles/composer.worker"
+  member = "serviceAccount:${google_service_account.composer-worker-sa.email}"
+}
+
+resource "google_project_iam_member" "composer-worker-bq-admin-role" {
+  role    = "roles/bigquery.user"
   member = "serviceAccount:${google_service_account.composer-worker-sa.email}"
 }
