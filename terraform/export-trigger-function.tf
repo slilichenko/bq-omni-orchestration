@@ -1,7 +1,3 @@
-resource "google_project_service" "cloud-functions-api" {
-  service = "cloudfunctions.googleapis.com"
-}
-
 data "archive_file" "local_export_starter_source" {
   type = "zip"
   source_dir = "../functions/export-starter"
@@ -19,7 +15,7 @@ resource "google_cloudfunctions_function" "function_export_starter" {
   project = var.project_id
   region = var.region
   available_memory_mb = "256"
-  entry_point = "start_export"
+  entry_point = "trigger_dag"
   runtime = "python37"
   source_archive_bucket = google_storage_bucket.deployments.name
   source_archive_object = google_storage_bucket_object.gcs_export_starter_source.name

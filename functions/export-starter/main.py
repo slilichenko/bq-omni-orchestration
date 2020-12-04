@@ -27,7 +27,7 @@ def trigger_dag(event, context=None):
 
   client_id = get_client_id(project_id, location, composer_env)
 
-  dag_name = 's3-data-export'
+  dag_name = 'bq-data-export'
 
   webserver_url = (
       'https://'

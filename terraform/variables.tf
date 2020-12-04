@@ -4,7 +4,7 @@ variable "project_id" {
 
 variable "composer_env" {
   type = string
-  default = "bq-omni-demo"
+  default = "bq-extract-transfer"
 }
 variable "region" {
   type = string
@@ -17,4 +17,19 @@ variable "composer_zone" {
 variable "local_output_path" {
   type = string
   default = "./output"
+}
+variable "aws_extract_bucket" {
+  type = string
+}
+
+variable "billing_account" {
+  type = string
+}
+
+variable "email_from" {
+  type = string
+}
+
+variable "sendgrid_api_key" {
+  type = string
 }
