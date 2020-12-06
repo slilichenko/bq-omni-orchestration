@@ -8,8 +8,6 @@ Once triggered the DAG performs the following steps:
    status of the previous step.
 """
 
-import datetime
-
 from airflow import models
 from airflow.operators import email_operator
 from airflow.operators.python_operator import BranchPythonOperator
@@ -34,11 +32,6 @@ from airflow.contrib.hooks.gcp_transfer_hook import (
   SCHEDULE,
   AWS_S3_DATA_SOURCE,
   TRANSFER_SPEC,
-  OBJECT_CONDITIONS,
-  FILTER_PROJECT_ID,
-  FILTER_JOB_NAMES,
-  TRANSFER_JOB,
-  TRANSFER_JOB_FIELD_MASK,
   ALREADY_EXISTING_IN_SINK,
 )
 from airflow.contrib.operators.gcp_transfer_operator import (
@@ -67,7 +60,7 @@ if(run_time < utcnow.time()):
   # Handle the case where +2 minutes moves the clock in the new day
   run_date = (utcnow + timedelta(days=1)).date()
 
-transfer_jobs_project_id = Variable.get("TRANSFER_JOBS_PROJECT_ID")
+transfer_jobs_project_id = Variable.get('TRANSFER_JOBS_PROJECT_ID')
 
 aws_to_gcs_transfer_body = {
   DESCRIPTION: 'Transfer of BQ Extract ' + EXTRACT_ID_EXPR,
@@ -120,22 +113,15 @@ with models.DAG(dag_id='bq-data-export',
   start_notification = email_operator.EmailOperator(
     task_id='start-notification',
     to=USER_EMAIL_EXPR,
-    subject='Data transfer started - ' + EXTRACT_ID_EXPR,
-    html_content="transfer-start-notification")
+    subject='Data extract and transfer job started - ' + EXTRACT_ID_EXPR,
+    html_content="email-template/transfer-start-notification.html")
 
   success_notification = email_operator.EmailOperator(
       task_id='success-notification',
       to=USER_EMAIL_EXPR,
-      subject='S3 to GCS extract job completion - ' + EXTRACT_ID_EXPR,
-      html_content="""
-        Transferred {transfer_size} to a GCS bucket
-        """.format(
-          transfer_size=(
-            '{{ ' +
-            TRANSFER_OP_DETAILS_EXPR +
-            '[\'counters\'][\'bytesCopiedToSink\'] }}'
-          )
-      ))
+      subject='Data extract and transfer job completed - ' + EXTRACT_ID_EXPR,
+      html_content="email-template/transfer-completion-notification.html"
+      )
 
   failure_notification = email_operator.EmailOperator(
       trigger_rule='one_failed',

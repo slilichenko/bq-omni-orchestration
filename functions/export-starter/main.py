@@ -20,7 +20,7 @@ def trigger_dag(event, context=None):
 
   data = read_gcs_file_content_as_json(bucket, file)
 
-  tenant_project_id = os.environ['TENANT_PROJECT_ID']
+  airflow_uri = os.environ['AIRFLOW_URI']
   project_id = os.environ['PROJECT_ID']
   location = os.environ['LOCATION']
   composer_env = os.environ['COMPOSER_ENV']
@@ -29,16 +29,10 @@ def trigger_dag(event, context=None):
 
   dag_name = 'bq-data-export'
 
-  webserver_url = (
-      'https://'
-      + tenant_project_id
-      + '.appspot.com/api/experimental/dags/'
-      + dag_name
-      + '/dag_runs'
-  )
+  api_endpoint = (airflow_uri + '/api/experimental/dags/' + dag_name + '/dag_runs')
   # Make a POST request to IAP which then Triggers the DAG
   make_iap_request(
-      webserver_url, client_id, method='POST', json={"conf": json.dumps(data)})
+      api_endpoint, client_id, method='POST', json={"conf": json.dumps(data)})
 
 
 def read_gcs_file_content_as_json(bucket, file):

@@ -29,7 +29,7 @@
             <span style="vertical-align: middle; display: inline-block; margin-left: 3px">Data Transfer Notification</span>
           </div>
           <div style="color: #FFFFFF; font: 24px Roboto-Medium, Roboto, Verdana, sans-serif; padding-top: 14px; line-height:32px; font-weight: bold">
-            New Transfer Started
+            Data Transfer Completed
           </div>
         </td>
       </tr>
@@ -39,7 +39,7 @@
             <tr>
               <td>
                 <div style="float: left; padding: 0; margin: 16px 32px; color: white;">
-                  Project: {{ var.project_id }}
+                  Project: {{ var.value.TRANSFER_JOBS_PROJECT_ID }}
                 </div>
               </td>
               <td>
@@ -55,7 +55,15 @@
         <td style="padding: 16px 32px 0 32px; color: #455A64; background-color: #FFFFFF; font: 14px Roboto-Medium, Roboto, Verdana, sans-serif; line-height: 25px;">
           <p>
             <span style="font-weight: bold">SQL Query:</span><br>
-            <span style="font-weight: normal">SELECT 1</span>
+            <span style="font-weight: normal">{{ dag_run.conf["sql_query"] }}</span>
+          </p>
+          <p>
+            <span style="font-weight: bold">Transfer details:</span><br>
+            {# TODO: add formatting of the bytes. Requires custom macro #}
+            <span style="font-weight: normal">Bytes transferred: {{
+              ti.xcom_pull(task_ids='wait-for-transfer-to-finish',
+                                 key='sensed_operations')[0]['metadata']['counters']['bytesCopiedToSink']
+              }}</span>
           </p>
         </td>
       </tr>

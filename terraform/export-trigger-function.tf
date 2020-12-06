@@ -24,6 +24,10 @@ resource "google_cloudfunctions_function" "function_export_starter" {
     resource = google_storage_bucket.transfer-jobs.name
   }
   environment_variables = {
+    AIRFLOW_URI = google_composer_environment.bq-export-and-transfer.config[0].airflow_uri
+    PROJECT_ID = google_project.main.project_id
+    LOCATION = google_composer_environment.bq-export-and-transfer.region
+    COMPOSER_ENV = google_composer_environment.bq-export-and-transfer.name
   }
 
   depends_on = [google_project_service.cloud-functions-api]
