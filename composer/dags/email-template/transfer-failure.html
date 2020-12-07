@@ -1,0 +1,93 @@
+<!doctype html public "- / /w3c / /dtd xhtml 1.0 strict / /en" "http: / /www.w3.org /tr /xhtml1 /dtd /xhtml1-strict.dtd">
+<html>
+<body bgcolor=#FAFAFA style="background-color: #FAFAFA;">
+<table role=presentation bgcolor=#FAFAFA border=0 cellspacing=0 cellpadding=0 style="background-color: #FAFAFA; margin-left: auto; margin-right: auto;">
+  <tr> <td>
+    <table role=presentation style="padding: 0; width: 600px; margin: auto; border: none; border-collapse: collapse; font: 13px Roboto-Medium, Roboto, Verdana, sans-serif; font-weight: 500">
+      <tr>
+        <td style="padding:32px 8px 28px 0; min-height: 64px">
+          <table role=presentation style="width: 100%;margin: auto; border: none; border-collapse: collapse;">
+            <td style=padding:0px;>
+              <div style=float:left;>
+                <a href=https://www.google.com/appserve/mkt/p/AD-FnEyra_HZKKGHnr-mTueswSRjsS7xApUUt-10rIpqIsl_MV8LWECa4EKkGV31CsO3M_Pk-D0GUeslwvOalJA>
+                  <img src=https://www.gstatic.com/images/branding/lockups/1x/google_cloud_horizontal_with_logo_80dp.png width=236 height=60 alt="Google Cloud">
+                </a>
+              </div>
+            </td>
+            <td style=padding:0px;>
+              <div align=right style="text-align: right; float: right; padding: 0; color: white;">
+
+              </div>
+            </td>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 32px; background-color: #3664F2; border-radius: 3px 3px 0px 0px;">
+          <div style="color: #FFFFFF; font: 15px Robot-Medium, Roboto, Verdana, sans-serif; letter-spacing: 0.1px; display: inline-block;">
+            <img src=https://www.gstatic.com/images/icons/material/system/1x/info_outline_white_24dp.png style="vertical-align: middle" alt=Info>
+            <span style="vertical-align: middle; display: inline-block; margin-left: 3px">Data Transfer Notification</span>
+          </div>
+          <div style="color: #FFFFFF; font: 24px Roboto-Medium, Roboto, Verdana, sans-serif; padding-top: 14px; line-height:32px; font-weight: bold">
+            Data Transfer Failed
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="background-color: #2A56C6; font: 14px Roboto-Medium, Roboto, Verdana, sans-serif; color:#ffffff; letter-spacing: 0; min-height: 40px; height:40px; font-weight: 500">
+          <table role=presentation style="width: 100%;margin: auto; border: none; border-collapse: collapse;">
+            <tr>
+              <td>
+                <div style="float: left; padding: 0; margin: 16px 32px; color: white;">
+                  Project: {{ var.value.TRANSFER_JOBS_PROJECT_ID }}
+                </div>
+              </td>
+              <td>
+                <div align=right style="text-align: right; float: right; padding: 0; margin: 16px 32px; color: white;">
+                  {{ ds }}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 16px 32px 0 32px; color: #455A64; background-color: #FFFFFF; font: 14px Roboto-Medium, Roboto, Verdana, sans-serif; line-height: 25px;">
+          <p>
+            <span style="font-weight: bold">SQL Query:</span><br>
+            <span style="font-weight: normal">{{ dag_run.conf["sql_query"] }}</span>
+          </p>
+          <p>
+            <span style="font-weight: bold">Last Task:</span><br>
+            <span style="font-weight: normal">{{ ti.task_id}}</span>
+          </p>
+          <p>
+            <span style="font-weight: bold">Failure Reason:</span><br>
+            <span style="font-weight: normal">{{ exception }}</span>
+          </p>
+          <p>
+            <span style="font-weight: bold">Task Logs:</span><br>
+            <span style="font-weight: normal"><a href="{{ ti.log_url }}">Composer Logs</a></span>
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align: center; padding:32px;">
+          <div style="padding:0 0 16px 0;">
+            <img src=http://services.google.com/fh/files/emails/wa_google_logo.png alt="Google Logo" width=82>
+          </div>
+          <div style="color: #757575; letter-spacing: 0; line-height: 16px; font: 12px Robot-Regular, Roboto, Verdana, sans-serif; font-weight: 400">
+            <div>
+              © 2020 Google LLC
+            </div>
+            <div style="margin-bottom: 16px">
+              1600 Ampitheatre Parkway, Mountain View, CA 94043
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+<img height=1 width=3 src=https://www.google.com/appserve/mkt/img/AD-FnEwY-0dnTn7Bj-k1kBrJ-3MzApxKzV18UEtOaZmDYIbXlB1R.gif></body>
+</html>

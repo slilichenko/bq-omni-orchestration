@@ -14,6 +14,8 @@ from airflow.operators.python_operator import BranchPythonOperator
 from airflow.operators import python_operator
 from airflow.contrib.operators import bigquery_operator
 from airflow.models import Variable
+import logging
+import json
 
 from datetime import datetime, timedelta
 
@@ -81,6 +83,27 @@ aws_to_gcs_transfer_body = {
   },
 }
 
+def report_failure(context):
+  send_email = email_operator.EmailOperator(
+      task_id="failure",
+      to=USER_EMAIL_EXPR,
+      start_date=days_ago(1),
+      subject='Data extract and transfer job failed - ' + EXTRACT_ID_EXPR,
+      html_content='email-template/transfer-failure.html'
+  )
+
+  # Set DAG, otherwise we will get errors
+  send_email.dag = context['dag']
+
+  # Manually render templates
+  # template_env = send_email.get_template_env()
+  # send_email.html_content = template_env.from_string(send_email.html_content).render(**context)
+  # send_email.to = template_env.from_string(send_email.to).render(**context)
+  # send_email.subject = template_env.from_string(send_email.subject).render(**context)
+
+  send_email.render_template_fields(context=context)
+
+  send_email.execute(context)
 
 # We set the start_date of the DAG to the previous date. This will
 # make the DAG immediately available for scheduling.
@@ -114,35 +137,14 @@ with models.DAG(dag_id='bq-data-export',
     task_id='start-notification',
     to=USER_EMAIL_EXPR,
     subject='Data extract and transfer job started - ' + EXTRACT_ID_EXPR,
-    html_content="email-template/transfer-start-notification.html")
+    html_content="email-template/transfer-start.html")
 
   success_notification = email_operator.EmailOperator(
       task_id='success-notification',
       to=USER_EMAIL_EXPR,
       subject='Data extract and transfer job completed - ' + EXTRACT_ID_EXPR,
-      html_content="email-template/transfer-completion-notification.html"
+      html_content="email-template/transfer-completion.html"
       )
-
-  failure_notification = email_operator.EmailOperator(
-      trigger_rule='one_failed',
-      task_id='failure-notification',
-      to=USER_EMAIL_EXPR,
-      subject='S3 to GCS extract job failure - ' + EXTRACT_ID_EXPR,
-      html_content="""
-        Failed to process the transfer
-        """.format(
-          # min_date=min_query_date,
-          # max_date=max_query_date,
-          # question_title=(
-          #   '{{ ti.xcom_pull(task_ids=\'bq_read_most_popular\', '
-          #   'key=\'return_value\')[0][0] }}'
-          # ),
-          # view_count=(
-          #   '{{ ti.xcom_pull(task_ids=\'bq_read_most_popular\', '
-          #   'key=\'return_value\')[0][1] }}'
-          # ),
-          # export_location=output_file
-      ))
 
   bigquery_export = bigquery_operator.BigQueryOperator(
       task_id='bigquery-export',
@@ -155,12 +157,15 @@ with models.DAG(dag_id='bq-data-export',
            'format=\'avro\','
            'overwrite=true) AS ' +
            SQL_EXPR),
-      use_legacy_sql=False
+      use_legacy_sql=False,
+      on_failure_callback=report_failure
   )
 
   create_transfer_job_from_aws = GcpTransferServiceJobCreateOperator(
-      task_id='create-transfer-job', body=aws_to_gcs_transfer_body,
-      aws_conn_id='aws-bucket-conn'
+      task_id='create-transfer-job',
+      body=aws_to_gcs_transfer_body,
+      aws_conn_id='aws-bucket-conn',
+      on_failure_callback=report_failure
   )
 
   wait_for_operation_to_end = GCPTransferServiceWaitForJobStatusSensor(
@@ -171,12 +176,15 @@ with models.DAG(dag_id='bq-data-export',
                          GcpTransferOperationStatus.FAILED,
                          GcpTransferOperationStatus.ABORTED},
       poke_interval=WAIT_FOR_OPERATION_POKE_INTERVAL,
+      on_failure_callback=report_failure
   )
 
   check_transfer_status = BranchPythonOperator(
       task_id="check-transfer-status",
       provide_context=True,
-      python_callable=check_transfer_status_function)
+      python_callable=check_transfer_status_function,
+      on_failure_callback=report_failure
+  )
 
   start_notification \
   >> validation \
@@ -184,6 +192,4 @@ with models.DAG(dag_id='bq-data-export',
   >> create_transfer_job_from_aws \
   >> wait_for_operation_to_end \
   >> check_transfer_status \
-  >> [success_notification, failure_notification]
-
-  [validation, bigquery_export, create_transfer_job_from_aws, wait_for_operation_to_end] >> failure_notification
+  >> success_notification
