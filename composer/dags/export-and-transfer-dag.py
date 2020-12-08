@@ -1,21 +1,9 @@
-"""A simple Airflow DAG that is triggered externally by a Cloud Function when a
-file lands in a GCS bucket.
-Once triggered the DAG performs the following steps:
-1. Triggers a Google Cloud Dataflow job with the input file information received
-   from the Cloud Function trigger.
-2. Upon completion of the Dataflow job, the input file is moved to a
-   gs://<target-bucket>/<success|failure>/YYYY-MM-DD/ location based on the
-   status of the previous step.
-"""
-
 from airflow import models
 from airflow.operators import email_operator
 from airflow.operators.python_operator import BranchPythonOperator
 from airflow.operators import python_operator
 from airflow.contrib.operators import bigquery_operator
 from airflow.models import Variable
-import logging
-import json
 
 from datetime import datetime, timedelta
 
@@ -51,6 +39,7 @@ TRANSFER_OP_DETAILS_EXPR = 'ti.xcom_pull(\'' \
                            '[0][\'metadata\']'
 USER_EMAIL_EXPR = '{{ dag_run.conf["user_email"] }}'
 EXTRACT_ID_EXPR = '{{ dag_run.conf["extract_id"] }}'
+DESTINATION_FOLDER_EXPR = '{{ dag_run.conf["destination_folder"] }}'
 SQL_EXPR = '{{ dag_run.conf["sql_query"] }}'
 
 WAIT_FOR_OPERATION_POKE_INTERVAL = 5
@@ -76,9 +65,12 @@ aws_to_gcs_transfer_body = {
   TRANSFER_SPEC: {
     AWS_S3_DATA_SOURCE: {BUCKET_NAME: Variable.get('DATA_EXTRACT_AWS_BUCKET')},
     GCS_DATA_SINK: {BUCKET_NAME: Variable.get('DATA_EXTRACT_GCS_BUCKET')},
-    TRANSFER_OPTIONS: {ALREADY_EXISTING_IN_SINK: True},
+    TRANSFER_OPTIONS: {
+      ALREADY_EXISTING_IN_SINK: True,
+      "deleteObjectsFromSourceAfterTransfer": True
+    },
     "objectConditions": {
-      "includePrefixes": [EXTRACT_ID_EXPR + '/']
+      "includePrefixes": [DESTINATION_FOLDER_EXPR + '/']
     }
   },
 }

@@ -57,6 +57,11 @@
             <span style="font-weight: bold">SQL Query:</span><br>
             <span style="font-weight: normal">{{ dag_run.conf['sql_query'] }}</span>
           </p>
+          <p>
+            <span style="font-weight: bold">Destination:</span><br>
+            <span style="font-weight: normal">GCS bucket {{var.value.DATA_EXTRACT_GCS_BUCKET}},
+            folder <a href="https://console.cloud.google.com/storage/browser/{{var.value.DATA_EXTRACT_GCS_BUCKET}}/{{ dag_run.conf['destination_folder'] }}">{{ dag_run.conf['destination_folder'] }}</a> </span>
+          </p>
         </td>
       </tr>
       <tr>

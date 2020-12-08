@@ -58,11 +58,20 @@
             <span style="font-weight: normal">{{ dag_run.conf["sql_query"] }}</span>
           </p>
           <p>
+            <span style="font-weight: bold">Destination:</span><br>
+            <span style="font-weight: normal">GCS bucket {{var.value.DATA_EXTRACT_GCS_BUCKET}},
+            folder <a href="https://console.cloud.google.com/storage/browser/{{var.value.DATA_EXTRACT_GCS_BUCKET}}/{{ dag_run.conf['destination_folder'] }}">{{ dag_run.conf['destination_folder'] }}</a> </span>
+          </p>
+          <p>
             <span style="font-weight: bold">Transfer details:</span><br>
             {# TODO: add formatting of the bytes. Requires custom macro #}
             <span style="font-weight: normal">Bytes transferred: {{
               ti.xcom_pull(task_ids='wait-for-transfer-to-finish',
                                  key='sensed_operations')[0]['metadata']['counters']['bytesCopiedToSink']
+              }}</span><br />
+            <span style="font-weight: normal">Files transferred: {{
+              ti.xcom_pull(task_ids='wait-for-transfer-to-finish',
+                                 key='sensed_operations')[0]['metadata']['counters']['objectsCopiedToSink']
               }}</span>
           </p>
         </td>

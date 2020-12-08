@@ -10,6 +10,10 @@ variable "region" {
   type = string
   default = "us-central1"
 }
+variable "bigquery_udf_dataset_location" {
+  type = string
+  default = "us-east1"
+}
 variable "composer_zone" {
   type = string
   default = "us-central1-c"
