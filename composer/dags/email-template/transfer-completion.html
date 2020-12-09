@@ -1,6 +1,7 @@
 {% import './email-template/layout.html' as layout %}
 {{ layout.header('Data Extract and Transfer Completed', var, dag_run) }}
-          <p>
+
+<p>
             <span style="font-weight: bold">Destination:</span><br>
             <span style="font-weight: normal">GCS bucket {{var.value.DATA_EXTRACT_GCS_BUCKET}},
             folder <a href="https://console.cloud.google.com/storage/browser/{{var.value.DATA_EXTRACT_GCS_BUCKET}}/{{ dag_run.conf['destination_folder'] }}">{{ dag_run.conf['destination_folder'] }}</a> </span>

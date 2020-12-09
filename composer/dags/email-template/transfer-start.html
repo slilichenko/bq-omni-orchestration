@@ -1,6 +1,6 @@
 {% import './email-template/layout.html' as layout -%}
 {{ layout.header('Data Extract and Transfer Started', var, dag_run) }}
-          <p>
+<p>
             <span style="font-weight: bold">Destination:</span><br>
             {% if dag_run.conf.destination_folder is defined %}
             <span style="font-weight: normal">GCS bucket {{ var.value.DATA_EXTRACT_GCS_BUCKET }},
