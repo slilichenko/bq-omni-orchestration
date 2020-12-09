@@ -1,9 +1,9 @@
-{% import './email-template/layout.html' as layout %>
-{{ layout.header('Data Extract and Transfer Started') }}
+{% import './email-template/layout.html' as layout -%}
+{{ layout.header('Data Extract and Transfer Started', var, dag_run) }}
           <p>
             <span style="font-weight: bold">Destination:</span><br>
             {% if dag_run.conf.destination_folder is defined %}
-            <span style="font-weight: normal">GCS bucket {{var.value.DATA_EXTRACT_GCS_BUCKET}},
+            <span style="font-weight: normal">GCS bucket {{ var.value.DATA_EXTRACT_GCS_BUCKET }},
             folder <a href="https://console.cloud.google.com/storage/browser/{{var.value.DATA_EXTRACT_GCS_BUCKET}}/{{ dag_run.conf['destination_folder'] }}">{{ dag_run.conf['destination_folder'] }}</a> </span>
             {% else %}
             <span style="font-weight: normal">BigQuery table {{ dag_run.conf.bq_destination.dataset_name }}.{{ dag_run.conf.bq_destination.table_name }} </span>

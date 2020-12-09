@@ -1,5 +1,5 @@
-{% import './email-template/layout.html' as layout %>
-{{ layout.header('Data Extract and Transfer Completed') }}
+{% import './email-template/layout.html' as layout %}
+{{ layout.header('Data Extract and Transfer Completed', var, dag_run) }}
           <p>
             <span style="font-weight: bold">Destination:</span><br>
             <span style="font-weight: normal">GCS bucket {{var.value.DATA_EXTRACT_GCS_BUCKET}},
@@ -7,10 +7,10 @@
           </p>
           <p>
             <span style="font-weight: bold">Transfer details:</span><br>
-            {# TODO: add formatting of the bytes. Requires custom macro #}
-            <span style="font-weight: normal">Bytes transferred: {{
+            <span style="font-weight: normal">Bytes transferred: {{ "{:,}".format(
               ti.xcom_pull(task_ids='wait-for-transfer-to-finish',
                                  key='sensed_operations')[0]['metadata']['counters']['bytesCopiedToSink']
+              | int)
               }}</span><br />
             <span style="font-weight: normal">Files transferred: {{
               ti.xcom_pull(task_ids='wait-for-transfer-to-finish',

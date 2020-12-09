@@ -1,4 +1,4 @@
-{% macro header(title) %}
+{% macro header(title, var, dag_run) %}
 <!doctype html public "- / /w3c / /dtd xhtml 1.0 strict / /en" "http: / /www.w3.org /tr /xhtml1 /dtd /xhtml1-strict.dtd">
 <html>
 <body bgcolor=#FAFAFA style="background-color: #FAFAFA;">
@@ -45,7 +45,7 @@
               </td>
               <td>
                 <div align=right style="text-align: right; float: right; padding: 0; margin: 16px 32px; color: white;">
-                  {{ ds }}
+                  Job: {{ dag_run.conf.extract_id }}
                 </div>
               </td>
             </tr>
@@ -58,7 +58,7 @@
             <span style="font-weight: bold">SQL Query:</span><br>
             <span style="font-weight: normal">{{ dag_run.conf.sql_query }}</span>
           </p>
-{% endmacro %>
+{% endmacro %}
 {% macro footer() %}
         </td>
       </tr>

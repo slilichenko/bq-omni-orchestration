@@ -1,5 +1,5 @@
-{% import './email-template/layout.html' as layout %>
-{{ layout.header('Data Extract and Transfer Failed') }}
+{% import './email-template/layout.html' as layout %}
+{{ layout.header('Data Extract and Transfer Failed', var, dag_run) }}
           <p>
             <span style="font-weight: bold">Last Task:</span><br>
             <span style="font-weight: normal">{{ ti.task_id}}</span>
