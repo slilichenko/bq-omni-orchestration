@@ -1,0 +1,9 @@
+{% import './email-template/layout.html' as layout %>
+{{ layout.header('Data Transfer Completed')}}
+          <p>
+            <span style="font-weight: bold">Destination:</span><br>
+            <span style="font-weight: normal">BigQuery Table:
+              <a href="https://console.cloud.google.com/bigquery?p={{ dag_run.conf.bq_destination.project_id }}&d={{ dag_run.conf.bq_destination.dataset_name }}&t={{ dag_run.conf.bq_destination.table_name }}&page=table">
+              {{ dag_run.conf['bq_destination']['dataset_name'] }}.{{ dag_run.conf['bq_destination']['table_name'] }}</a></span>
+          </p>
+{{ layout.footer() }}

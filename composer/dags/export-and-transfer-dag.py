@@ -1,8 +1,11 @@
 from airflow import models
+from airflow.exceptions import AirflowException
 from airflow.operators import email_operator
+from airflow.contrib.operators import gcs_delete_operator
 from airflow.operators.python_operator import BranchPythonOperator
 from airflow.operators import python_operator
 from airflow.contrib.operators import bigquery_operator
+from airflow.contrib.operators import gcs_to_bq
 from airflow.models import Variable
 
 from datetime import datetime, timedelta
@@ -39,8 +42,15 @@ TRANSFER_OP_DETAILS_EXPR = 'ti.xcom_pull(\'' \
                            '[0][\'metadata\']'
 USER_EMAIL_EXPR = '{{ dag_run.conf["user_email"] }}'
 EXTRACT_ID_EXPR = '{{ dag_run.conf["extract_id"] }}'
-DESTINATION_FOLDER_EXPR = '{{ dag_run.conf["destination_folder"] }}'
-SQL_EXPR = '{{ dag_run.conf["sql_query"] }}'
+DESTINATION_FOLDER_EXPR = '{{ dag_run.conf.destination_folder ' \
+                          'if dag_run.conf.destination_folder' \
+                          ' else dag_run.conf.extract_id }}'
+
+DESTINATION_BQ_DATASET_NAME = '{{ dag_run.conf.bq_destination.dataset_name }}'
+DESTINATION_BQ_TABLE_NAME = '{{ dag_run.conf.bq_destination.table_name }}'
+DESTINATION_BQ_PROJECT_ID = '{{ dag_run.conf.bq_destination.project_id }}'
+
+SQL_EXPR = '{{ dag_run.conf.sql_query }}'
 
 WAIT_FOR_OPERATION_POKE_INTERVAL = 5
 
@@ -53,6 +63,7 @@ if(run_time < utcnow.time()):
 
 transfer_jobs_project_id = Variable.get('TRANSFER_JOBS_PROJECT_ID')
 
+data_extract_gcs_bucket = Variable.get('DATA_EXTRACT_GCS_BUCKET')
 aws_to_gcs_transfer_body = {
   DESCRIPTION: 'Transfer of BQ Extract ' + EXTRACT_ID_EXPR,
   STATUS: GcpTransferJobsStatus.ENABLED,
@@ -64,7 +75,7 @@ aws_to_gcs_transfer_body = {
   },
   TRANSFER_SPEC: {
     AWS_S3_DATA_SOURCE: {BUCKET_NAME: Variable.get('DATA_EXTRACT_AWS_BUCKET')},
-    GCS_DATA_SINK: {BUCKET_NAME: Variable.get('DATA_EXTRACT_GCS_BUCKET')},
+    GCS_DATA_SINK: {BUCKET_NAME: data_extract_gcs_bucket},
     TRANSFER_OPTIONS: {
       ALREADY_EXISTING_IN_SINK: True,
       "deleteObjectsFromSourceAfterTransfer": True
@@ -105,16 +116,23 @@ DEFAULT_DAG_ARGS = {
 
 def validate_request(**context):
   # TODO: add real validation
-  print("Context conf", context['dag_run'].conf)
+  print("Context conf: ", context['dag_run'].conf)
 
 def check_transfer_status_function(**context):
   ti = context['ti']
   transfer_status = ti.xcom_pull(task_ids=OP_WAIT_FOR_TRANSFER_COMPLETION,
                                  key='sensed_operations')[0]['metadata']['status']
-  if transfer_status == 'SUCCESS':
-    return 'success-notification'
+  if transfer_status != 'SUCCESS':
+    raise AirflowException('Data transfer job failed; status: ' + transfer_status)
+
+def is_import_into_big_query_needed_function(**context):
+  config = context['dag_run'].conf
+
+  if 'bq_destination' in config:
+    return 'load-to-bq'
   else:
-    return 'failure-notification'
+    return 'send-transfer-success-notification'
+
 
 # Setting schedule_interval to None as this DAG is externally triggered by
 # a Cloud Function
@@ -126,20 +144,27 @@ with models.DAG(dag_id='bq-data-export',
                                               provide_context=True)
 
   start_notification = email_operator.EmailOperator(
-    task_id='start-notification',
+    task_id='send-start-notification',
     to=USER_EMAIL_EXPR,
     subject='Data extract and transfer job started - ' + EXTRACT_ID_EXPR,
     html_content="email-template/transfer-start.html")
 
-  success_notification = email_operator.EmailOperator(
-      task_id='success-notification',
+  transfer_success_notification = email_operator.EmailOperator(
+      task_id='send-transfer-success-notification',
       to=USER_EMAIL_EXPR,
       subject='Data extract and transfer job completed - ' + EXTRACT_ID_EXPR,
       html_content="email-template/transfer-completion.html"
       )
 
+  bq_load_success_notification = email_operator.EmailOperator(
+      task_id='send-bq-load-success-notification',
+      to=USER_EMAIL_EXPR,
+      subject='Data extract and transfer job completed - ' + EXTRACT_ID_EXPR,
+      html_content="email-template/transfer-and-load-completion.html"
+  )
+
   bigquery_export = bigquery_operator.BigQueryOperator(
-      task_id='bigquery-export',
+      task_id='export-to-bigquery',
       sql=(
           # TODO: replace with AWS specific extract.
           'EXPORT DATA OPTIONS(' +
@@ -171,11 +196,37 @@ with models.DAG(dag_id='bq-data-export',
       on_failure_callback=report_failure
   )
 
-  check_transfer_status = BranchPythonOperator(
+  check_transfer_status = python_operator.PythonOperator(
       task_id="check-transfer-status",
       provide_context=True,
       python_callable=check_transfer_status_function,
-      on_failure_callback=report_failure
+      on_failure_callback=report_failure,
+      retries=0
+  )
+
+  is_bq_load_job = BranchPythonOperator(
+      task_id="is-bq-load-job",
+      provide_context=True,
+      python_callable=is_import_into_big_query_needed_function,
+  )
+
+  intiate_load_into_bq = gcs_to_bq.GoogleCloudStorageToBigQueryOperator(
+    task_id='load-to-bq',
+      bucket=data_extract_gcs_bucket,
+      source_objects=[DESTINATION_FOLDER_EXPR + '/*.avro'],
+      source_format='AVRO',
+      autodetect=True,
+      on_failure_callback=report_failure,
+      destination_project_dataset_table= DESTINATION_BQ_PROJECT_ID + '.'
+        + DESTINATION_BQ_DATASET_NAME + '.'
+        + DESTINATION_BQ_TABLE_NAME
+  )
+
+  clean_temp_gcs_bucket = gcs_delete_operator.GoogleCloudStorageDeleteOperator(
+      task_id='delete-temp-gcs-bucket',
+      on_failure_callback=report_failure,
+      bucket_name=data_extract_gcs_bucket,
+      prefix=DESTINATION_FOLDER_EXPR
   )
 
   start_notification \
@@ -184,4 +235,13 @@ with models.DAG(dag_id='bq-data-export',
   >> create_transfer_job_from_aws \
   >> wait_for_operation_to_end \
   >> check_transfer_status \
-  >> success_notification
+  >> is_bq_load_job
+
+  is_bq_load_job >> [transfer_success_notification, intiate_load_into_bq]
+
+  intiate_load_into_bq \
+    >> clean_temp_gcs_bucket \
+    >> bq_load_success_notification
+
+
+
