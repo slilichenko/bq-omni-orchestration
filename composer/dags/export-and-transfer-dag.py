@@ -78,6 +78,9 @@ if(run_time < utcnow.time()):
 transfer_jobs_project_id = Variable.get('TRANSFER_JOBS_PROJECT_ID')
 
 data_extract_gcs_bucket = Variable.get('DATA_EXTRACT_GCS_BUCKET')
+data_extract_aws_bucket = Variable.get('DATA_EXTRACT_AWS_BUCKET')
+bq_aws_connection_name = Variable.get('BQ_AWS_CONNECTION_NAME')
+
 aws_to_gcs_transfer_body = {
   DESCRIPTION: 'Transfer of BQ Extract ' + EXTRACT_ID_EXPR,
   STATUS: GcpTransferJobsStatus.ENABLED,
@@ -88,7 +91,7 @@ aws_to_gcs_transfer_body = {
     START_TIME_OF_DAY: run_time,
   },
   TRANSFER_SPEC: {
-    AWS_S3_DATA_SOURCE: {BUCKET_NAME: Variable.get('DATA_EXTRACT_AWS_BUCKET')},
+    AWS_S3_DATA_SOURCE: {BUCKET_NAME: data_extract_aws_bucket},
     GCS_DATA_SINK: {BUCKET_NAME: data_extract_gcs_bucket},
     TRANSFER_OPTIONS: {
       ALREADY_EXISTING_IN_SINK: True,
@@ -111,12 +114,6 @@ def report_failure(context):
 
   # Set DAG, otherwise we will get errors
   send_email.dag = context['dag']
-
-  # Manually render templates
-  # template_env = send_email.get_template_env()
-  # send_email.html_content = template_env.from_string(send_email.html_content).render(**context)
-  # send_email.to = template_env.from_string(send_email.to).render(**context)
-  # send_email.subject = template_env.from_string(send_email.subject).render(**context)
 
   send_email.render_template_fields(context=context)
 
@@ -180,9 +177,8 @@ with models.DAG(dag_id='bq-data-export',
   bigquery_export = bigquery_operator.BigQueryOperator(
       task_id='export-to-bigquery',
       sql=(
-          # TODO: replace with AWS specific extract.
-          'EXPORT DATA OPTIONS(' +
-           'uri=\'gs://bq-omni-sa-demo-296222-transfer-jobs/'
+          'EXPORT DATA WITH CONNECTION `' + bq_aws_connection_name + '` '
+           'OPTIONS(uri=\'s3://' + data_extract_aws_bucket + '/'
            + EXTRACT_ID_EXPR +
            '/*.avro\',' +
            'format=\'avro\','

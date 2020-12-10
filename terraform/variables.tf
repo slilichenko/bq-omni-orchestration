@@ -26,6 +26,10 @@ variable "aws_extract_bucket" {
   type = string
 }
 
+variable "bq_aws_connection_name" {
+  type = string
+}
+
 variable "billing_account" {
   type = string
 }
