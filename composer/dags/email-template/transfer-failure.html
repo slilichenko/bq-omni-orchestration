@@ -1,15 +1,15 @@
 {% import './email-template/layout.html' as layout %}
 {{ layout.header('Data Extract and Transfer Failed', var, dag_run) }}
 <p>
-            <span style="font-weight: bold">Last Task:</span><br>
-            <span style="font-weight: normal">{{ ti.task_id}}</span>
-          </p>
-          <p>
-            <span style="font-weight: bold">Failure Reason:</span><br>
-            <span style="font-weight: normal">{{ exception }}</span>
-          </p>
-          <p>
-            <span style="font-weight: bold">Task Logs:</span><br>
-            <span style="font-weight: normal"><a href="{{ ti.log_url }}">Cloud Composer Logs</a></span>
-          </p>
+  <span style="font-weight: bold">Last Task:</span><br>
+  <span style="font-weight: normal">{{ ti.task_id}}</span>
+</p>
+<p>
+  <span style="font-weight: bold">Failure Reason:</span><br>
+  <span style="font-weight: normal">{{ exception }}</span>
+</p>
+<p>
+  <span style="font-weight: bold">Task Logs:</span><br>
+  <span style="font-weight: normal"><a href="{{ ti.log_url }}">Cloud Composer Logs</a></span>
+</p>
 {{ layout.footer() }}

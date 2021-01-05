@@ -12,18 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from airflow import models
-from airflow.exceptions import AirflowException
-from airflow.operators import email_operator
-from airflow.contrib.operators import gcs_delete_operator
-from airflow.operators.python_operator import BranchPythonOperator
-from airflow.operators import python_operator
-from airflow.contrib.operators import bigquery_operator
-from airflow.contrib.operators import gcs_to_bq
-from airflow.models import Variable
-
 from datetime import datetime, timedelta
 
+from airflow import models
 from airflow.contrib.hooks.gcp_transfer_hook import (
   GcpTransferOperationStatus,
   GcpTransferJobsStatus,
@@ -41,28 +32,35 @@ from airflow.contrib.hooks.gcp_transfer_hook import (
   TRANSFER_SPEC,
   ALREADY_EXISTING_IN_SINK,
 )
-from airflow.contrib.operators.gcp_transfer_operator import (
+from airflow.contrib.operators import bigquery_operator
+from airflow.contrib.operators import gcs_delete_operator
+from airflow.contrib.operators import gcs_to_bq
+from airflow.contrib.operators.gcp_transfer_operator import \
   GcpTransferServiceJobCreateOperator
-)
-
-from airflow.contrib.sensors.gcp_transfer_sensor import GCPTransferServiceWaitForJobStatusSensor
+from airflow.contrib.sensors.gcp_transfer_sensor import \
+  GCPTransferServiceWaitForJobStatusSensor
+from airflow.exceptions import AirflowException
+from airflow.models import Variable
+from airflow.operators import email_operator
+from airflow.operators import python_operator
+from airflow.operators.python_operator import BranchPythonOperator
 from airflow.utils.dates import days_ago
 
 OP_WAIT_FOR_TRANSFER_COMPLETION = 'wait-for-transfer-to-finish'
 
 TRANSFER_OP_DETAILS_EXPR = 'ti.xcom_pull(\'' \
                            + OP_WAIT_FOR_TRANSFER_COMPLETION + '\', ' \
-                                    'key=\'sensed_operations\')' \
-                           '[0][\'metadata\']'
+                                       'key=\'sensed_operations\')' \
+                                       '[0][\'metadata\']'
 USER_EMAIL_EXPR = '{{ dag_run.conf["user_email"] }}'
 EXTRACT_ID_EXPR = '{{ dag_run.conf["extract_id"] }}'
-DESTINATION_FOLDER_EXPR = '{{ dag_run.conf.destination_folder ' \
-                          'if dag_run.conf.destination_folder' \
-                          ' else dag_run.conf.extract_id }}'
+DEST_FOLDER_EXPR = '{{ dag_run.conf.destination_folder ' \
+                   'if dag_run.conf.destination_folder' \
+                   ' else dag_run.conf.extract_id }}'
 
-DESTINATION_BQ_DATASET_NAME = '{{ dag_run.conf.bq_destination.dataset_name }}'
-DESTINATION_BQ_TABLE_NAME = '{{ dag_run.conf.bq_destination.table_name }}'
-DESTINATION_BQ_PROJECT_ID = '{{ dag_run.conf.bq_destination.project_id }}'
+DEST_BQ_DATASET_NAME_EXPR = '{{ dag_run.conf.bq_destination.dataset_name }}'
+DEST_BQ_TABLE_NAME_EXPR = '{{ dag_run.conf.bq_destination.table_name }}'
+DEST_BQ_PROJECT_ID_EXPR = '{{ dag_run.conf.bq_destination.project_id }}'
 
 SQL_EXPR = '{{ dag_run.conf.sql_query }}'
 
@@ -71,7 +69,7 @@ WAIT_FOR_OPERATION_POKE_INTERVAL = 5
 utcnow = datetime.utcnow()
 run_date = utcnow.date()
 run_time = (utcnow + timedelta(minutes=2)).time()
-if(run_time < utcnow.time()):
+if (run_time < utcnow.time()):
   # Handle the case where +2 minutes moves the clock in the new day
   run_date = (utcnow + timedelta(days=1)).date()
 
@@ -98,10 +96,11 @@ aws_to_gcs_transfer_body = {
       "deleteObjectsFromSourceAfterTransfer": True
     },
     "objectConditions": {
-      "includePrefixes": [DESTINATION_FOLDER_EXPR + '/']
+      "includePrefixes": [DEST_FOLDER_EXPR + '/']
     }
   },
 }
+
 
 def report_failure(context):
   send_email = email_operator.EmailOperator(
@@ -119,22 +118,28 @@ def report_failure(context):
 
   send_email.execute(context)
 
+
 # We set the start_date of the DAG to the previous date. This will
 # make the DAG immediately available for scheduling.
 DEFAULT_DAG_ARGS = {
   'start_date': days_ago(1)
 }
 
+
 def validate_request(**context):
   # TODO: add real validation
   print("Context conf: ", context['dag_run'].conf)
 
+
 def check_transfer_status_function(**context):
   ti = context['ti']
   transfer_status = ti.xcom_pull(task_ids=OP_WAIT_FOR_TRANSFER_COMPLETION,
-                                 key='sensed_operations')[0]['metadata']['status']
+                                 key='sensed_operations')[0]['metadata'][
+    'status']
   if transfer_status != 'SUCCESS':
-    raise AirflowException('Data transfer job failed; status: ' + transfer_status)
+    raise AirflowException(
+        'Data transfer job failed; status: ' + transfer_status)
+
 
 def is_import_into_big_query_needed_function(**context):
   config = context['dag_run'].conf
@@ -155,17 +160,17 @@ with models.DAG(dag_id='bq-data-export',
                                               provide_context=True)
 
   start_notification = email_operator.EmailOperator(
-    task_id='send-start-notification',
-    to=USER_EMAIL_EXPR,
-    subject='Data extract and transfer job started - ' + EXTRACT_ID_EXPR,
-    html_content="email-template/transfer-start.html")
+      task_id='send-start-notification',
+      to=USER_EMAIL_EXPR,
+      subject='Data extract and transfer job started - ' + EXTRACT_ID_EXPR,
+      html_content="email-template/transfer-start.html")
 
   transfer_success_notification = email_operator.EmailOperator(
       task_id='send-transfer-success-notification',
       to=USER_EMAIL_EXPR,
       subject='Data extract and transfer job completed - ' + EXTRACT_ID_EXPR,
       html_content="email-template/transfer-completion.html"
-      )
+  )
 
   bq_load_success_notification = email_operator.EmailOperator(
       task_id='send-bq-load-success-notification',
@@ -178,12 +183,13 @@ with models.DAG(dag_id='bq-data-export',
       task_id='export-to-bigquery',
       sql=(
           'EXPORT DATA WITH CONNECTION `' + bq_aws_connection_name + '` '
-           'OPTIONS(uri=\'s3://' + data_extract_aws_bucket + '/'
-           + EXTRACT_ID_EXPR +
-           '/*.avro\',' +
-           'format=\'avro\','
-           'overwrite=true) AS ' +
-           SQL_EXPR),
+                'OPTIONS(uri=\'s3://' + data_extract_aws_bucket + '/'
+          + EXTRACT_ID_EXPR +
+          '/*.avro\',' 
+          'format=\'AVRO\','
+          'compression=\'SNAPPY\','
+          'overwrite=false) AS ' +
+          SQL_EXPR),
       use_legacy_sql=False,
       on_failure_callback=report_failure
   )
@@ -221,22 +227,25 @@ with models.DAG(dag_id='bq-data-export',
   )
 
   intiate_load_into_bq = gcs_to_bq.GoogleCloudStorageToBigQueryOperator(
-    task_id='load-to-bq',
+      task_id='load-to-bq',
       bucket=data_extract_gcs_bucket,
-      source_objects=[DESTINATION_FOLDER_EXPR + '/*.avro'],
+      source_objects=[DEST_FOLDER_EXPR + '/*.avro'],
       source_format='AVRO',
       autodetect=True,
       on_failure_callback=report_failure,
-      destination_project_dataset_table= DESTINATION_BQ_PROJECT_ID + '.'
-        + DESTINATION_BQ_DATASET_NAME + '.'
-        + DESTINATION_BQ_TABLE_NAME
+      destination_project_dataset_table=DEST_BQ_PROJECT_ID_EXPR + '.'
+                                        + DEST_BQ_DATASET_NAME_EXPR + '.'
+                                        + DEST_BQ_TABLE_NAME_EXPR
   )
 
+  # For simplicity we use the same error reporting function here.
+  # Ideally, it should be a custom one which won't tell the user that the whole
+  # workflow failed.
   clean_temp_gcs_bucket = gcs_delete_operator.GoogleCloudStorageDeleteOperator(
       task_id='delete-temp-gcs-bucket',
       on_failure_callback=report_failure,
       bucket_name=data_extract_gcs_bucket,
-      prefix=DESTINATION_FOLDER_EXPR
+      prefix=DEST_FOLDER_EXPR
   )
 
   start_notification \
@@ -249,9 +258,4 @@ with models.DAG(dag_id='bq-data-export',
 
   is_bq_load_job >> [transfer_success_notification, intiate_load_into_bq]
 
-  intiate_load_into_bq \
-    >> clean_temp_gcs_bucket \
-    >> bq_load_success_notification
-
-
-
+  intiate_load_into_bq >> [clean_temp_gcs_bucket, bq_load_success_notification]
