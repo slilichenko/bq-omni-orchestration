@@ -4,7 +4,12 @@ provider "google" {
 }
 
 resource "google_project" "main" {
-  name       = "BigQuery Transfer Demo"
+  name       = "BigQuery Omni Transfer Demo"
   project_id = var.project_id
   billing_account = var.billing_account
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [name, billing_account]
+  }
 }
