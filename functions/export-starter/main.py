@@ -28,7 +28,7 @@ IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 
 
-def trigger_dag(event, context=None):
+def trigger_dag(event):
   bucket = event['bucket']
   file = event['name']
 
@@ -43,8 +43,9 @@ def trigger_dag(event, context=None):
 
   dag_name = 'bq-data-export'
 
-  api_endpoint = (airflow_uri + '/api/experimental/dags/' + dag_name + '/dag_runs')
-  # Make a POST request to IAP which then Triggers the DAG
+  api_endpoint = (
+        airflow_uri + '/api/experimental/dags/' + dag_name + '/dag_runs')
+  # Make a POST request to IAP which then triggers the DAG
   make_iap_request(
       api_endpoint, client_id, method='POST', json={"conf": json.dumps(data)})
 
@@ -55,6 +56,7 @@ def read_gcs_file_content_as_json(bucket, file):
   blob = bucket.get_blob(file)
   json_data = json.loads(blob.download_as_string())
   return json_data
+
 
 def make_iap_request(url, client_id, method='GET', **kwargs):
   """Makes a request to an application protected by Identity-Aware Proxy.

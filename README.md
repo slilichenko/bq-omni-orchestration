@@ -58,9 +58,15 @@ cd terraform
 terraform init
 terraform apply
 ```
+If you would like to deploy the resources into an existing project make sure to execute the following command 
+**before** `terraform apply`:
+
+```.env
+terraform import google_project.main project-id
+```
 
 ## Running data transfers
-Three are several BigQuery procedures that were created by the Terraform script. They are located in `udfs` dataset.
+Three are several BigQuery stored procedures that are created by the Terraform script. They are located in `udfs` dataset.
 Two of them are meant to be executed by the end users.
 
 ### Transferring data to a GCS bucket
@@ -78,5 +84,17 @@ DECLARE destination_dataset_name STRING DEFAULT 'gcp_dataset';
 DECLARE destination_table_name STRING DEFAULT 'extracted_data';
 CALL `bq-omni-sa-demo-296222.udfs.transfer_s3_data_to_bq`(sql_query, destination_dataset_name, destination_table_name);
 ```
+### Other ways to run transfers
+The transfer workflows can also be started by:
+* Calling stored procedures from `bq` CLI or via BigQuery APIs
+* Triggering Cloud Composer workflow programmatically (see [export starter](functions/export-starter) function)
+* Triggering Cloud Composer manually from the Composer UI.
 
 ## Cleaning up
+If you created a separate project to run this demo - delete the project.
+
+If you had an existing project where you installed the resources you would need to individually delete
+them:
+```.env
+terraform destroy
+```

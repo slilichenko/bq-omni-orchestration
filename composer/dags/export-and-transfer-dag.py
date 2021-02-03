@@ -125,11 +125,9 @@ DEFAULT_DAG_ARGS = {
   'start_date': days_ago(1)
 }
 
-
 def validate_request(**context):
   # TODO: add real validation
   print("Context conf: ", context['dag_run'].conf)
-
 
 def check_transfer_status_function(**context):
   ti = context['ti']
@@ -141,7 +139,7 @@ def check_transfer_status_function(**context):
         'Data transfer job failed; status: ' + transfer_status)
 
 
-def is_import_into_big_query_needed_function(**context):
+def is_import_into_big_query_needed(**context):
   config = context['dag_run'].conf
 
   if 'bq_destination' in config:
@@ -223,7 +221,7 @@ with models.DAG(dag_id='bq-data-export',
   is_bq_load_job = BranchPythonOperator(
       task_id="is-bq-load-job",
       provide_context=True,
-      python_callable=is_import_into_big_query_needed_function,
+      python_callable=is_import_into_big_query_needed,
   )
 
   intiate_load_into_bq = gcs_to_bq.GoogleCloudStorageToBigQueryOperator(
