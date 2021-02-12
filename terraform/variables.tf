@@ -30,10 +30,6 @@ variable "bq_aws_connection_name" {
   type = string
 }
 
-variable "billing_account" {
-  type = string
-}
-
 variable "email_from" {
   type = string
 }

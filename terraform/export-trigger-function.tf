@@ -25,7 +25,7 @@ resource "google_cloudfunctions_function" "function_export_starter" {
   }
   environment_variables = {
     AIRFLOW_URI = google_composer_environment.bq-export-and-transfer.config[0].airflow_uri
-    PROJECT_ID = google_project.main.project_id
+    PROJECT_ID = data.google_project.main.project_id
     LOCATION = google_composer_environment.bq-export-and-transfer.region
     COMPOSER_ENV = google_composer_environment.bq-export-and-transfer.name
   }

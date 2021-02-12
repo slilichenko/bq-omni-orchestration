@@ -3,13 +3,6 @@ provider "google" {
   region  = var.region
 }
 
-resource "google_project" "main" {
-  name       = "BigQuery Omni Transfer Demo"
+data "google_project" "main" {
   project_id = var.project_id
-  billing_account = var.billing_account
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes = [name, billing_account]
-  }
 }
