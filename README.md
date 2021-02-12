@@ -43,9 +43,8 @@ You can provide them on the command line or through environment variables, but t
 `terraform.tfvars` is the default and will be automatically used.
 An example of such a file:
 ```hcl-terraform
-project_id = "project-id-to-deploy"
-billing_account = "017B54-C9C82F-66C45A"
-aws_extract_bucket = "bq-omni-sa-demo-extract"
+project_id = "project-id"
+aws_extract_bucket = "s3-extract-bucket"
 bq_aws_connection_name = "aws-us-east-1.aws-s3-connection"
 email_from = "'Data Extract Notifications'<data.extract.notification@example.com>"
 sendgrid_api_key = "api-key"
