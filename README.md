@@ -57,12 +57,6 @@ cd terraform
 terraform init
 terraform apply
 ```
-If you would like to deploy the resources into an existing project make sure to execute the following command 
-**before** `terraform apply`:
-
-```.env
-terraform import google_project.main project-id
-```
 
 ## Running data transfers
 Three are several BigQuery stored procedures that are created by the Terraform script. They are located in `udfs` dataset.
@@ -92,8 +86,7 @@ The transfer workflows can also be started by:
 ## Cleaning up
 If you created a separate project to run this demo - delete the project.
 
-If you had an existing project where you installed the resources you would need to individually delete
-them:
+If you deployed in an existing project:
 ```.env
 terraform destroy
 ```

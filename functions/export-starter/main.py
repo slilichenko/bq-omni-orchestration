@@ -28,7 +28,7 @@ IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 
 
-def trigger_dag(event):
+def trigger_dag(event, context=None):
   bucket = event['bucket']
   file = event['name']
 
