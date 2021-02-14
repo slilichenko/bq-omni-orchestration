@@ -16,6 +16,9 @@ resource "google_composer_environment" "bq-export-and-transfer" {
         SENDGRID_API_KEY = var.sendgrid_api_key
         SENDGRID_MAIL_FROM = var.email_from
       }
+      airflow_config_overrides = {
+        api-auth_backend = "airflow.api.auth.backend.default"
+      }
       pypi_packages = {
         boto3 = ""
       }
