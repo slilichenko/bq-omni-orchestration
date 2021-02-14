@@ -58,6 +58,21 @@ terraform init
 terraform apply
 ```
 
+### Create AWS Credentials
+Follow [Storage Transfer Service instructions](https://cloud.google.com/storage-transfer/docs/configure-access#amazon-s3)
+on how to create a pair of access/secret key pair. You will need to use them to configure Composer in the next step.
+
+### Configuring Cloud Composer
+Once the Cloud Composer instance is running it needs to be configured to [create AWS Connection](https://cloud.google.com/composer/docs/how-to/managing/connections) to
+the export bucket (used by Storage Data Transfer):
+* Go to the Composer Airflow Webserver UI
+* Select Admin -> Connections -> Create
+* Parameters:
+  * Conn Id = aws-bucket-conn
+  * Conn Type = S3
+  * Login = \<AWS access key\>
+  * Password = \<AWS secret key\>
+
 ## Running data transfers
 Three are several BigQuery stored procedures that are created by the Terraform script. They are located in `udfs` dataset.
 Two of them are meant to be executed by the end users.
