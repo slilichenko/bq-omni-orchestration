@@ -1,16 +1,16 @@
-# Using BigQuery Omni to Selectively Transfer Data from AWS or Azure to GCP
-
-This is a fully functional demo to show how BigQuery Omni can be used to transfer data from another cloud to GCP.
+# Using BigQuery Omni to Selectively Transfer Data from AWS to GCP
+This repo contains a fully functional reference implementation of the Selective Data Migration Using BigQuery Omni solution 
+(soon to be published). 
 
 ## Overview
 This diagram describes how the overall solution works:
-![Solution Diagram](/docs/BigQuery%20Omni%20Selective%20Migration.svg)
+![Solution Diagram](/docs/Selective%20Data%20Migration%20Using%20BigQuery%20Omni.svg)
 
 Users initiate the transfer process by providing SQL query to run and specify whether the result
 needs to be transferred to a GCS bucket or stored in a BigQuery table. Cloud Composer executes
 the workflow shown below:
 
-![Workflowo Diagram](/docs/Transfer%20Workflow.png)
+![Workflow Diagram](/docs/Transfer%20Workflow.png)
 
 ## BigQuery Omni Setup
 Before you can run the demo you would need to [set up BigQuery Omni on AWS](https://cloud.google.com/bigquery-omni/docs/aws/create-connection) (currently the Terraform scripts don't
@@ -58,7 +58,7 @@ terraform init
 terraform apply
 ```
 
-### Create AWS Credentials
+### Create AWS Credentials for Storage Transfer Service
 Follow [Storage Transfer Service instructions](https://cloud.google.com/storage-transfer/docs/configure-access#amazon-s3)
 on how to create a pair of access/secret key pair. You will need to use them to configure Composer in the next step.
 
@@ -82,7 +82,7 @@ Prepare your query and execute:
 ```.sql
 DECLARE sql_query STRING DEFAULT "SELECT col1, col2 FROM myproject.aws_dataset.table1 WHERE col3 = 'my criteria'";
 DECLARE destination_folder STRING DEFAULT 'extract-123';
-CALL `myproject.udfs.transfer_s3_data_to_gcs`(sql_query, destination_folder);
+CALL `<project-id>.udfs.transfer_s3_data_to_gcs`(sql_query, destination_folder);
 ```
 ### Transferring data to a BigQuery table
 Prepare your query and execute:
@@ -90,7 +90,7 @@ Prepare your query and execute:
 DECLARE sql_query STRING DEFAULT "SELECT col1, col2 FROM myproject.aws_dataset.table1 WHERE col3 = 'my criteria'";
 DECLARE destination_dataset_name STRING DEFAULT 'gcp_dataset';
 DECLARE destination_table_name STRING DEFAULT 'extracted_data';
-CALL `bq-omni-sa-demo-296222.udfs.transfer_s3_data_to_bq`(sql_query, destination_dataset_name, destination_table_name);
+CALL `<project-id>.udfs.transfer_s3_data_to_bq`(sql_query, destination_dataset_name, destination_table_name);
 ```
 ### Other ways to run transfers
 The transfer workflows can also be started by:

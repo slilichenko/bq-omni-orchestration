@@ -11,8 +11,8 @@ resource "google_bigquery_dataset" "exported_data" {
 
 resource "google_bigquery_dataset" "udfs" {
   dataset_id                  = "udfs"
-  friendly_name               = "UDFs for Data Extraction and Transfer"
-  description                 = "A set of UDFs to support data extraction and transfer"
+  friendly_name               = "UDFs and Stored Procedures for Data Extraction and Transfer"
+  description                 = "UDFs and Stored Procedures for Data Extraction and Transfer"
   location                    = var.bigquery_dataset_location
 }
 

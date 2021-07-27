@@ -1,4 +1,16 @@
-#  Copyright 2020 Google LLC
+#  Copyright 2021 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -80,7 +92,7 @@ data_extract_aws_bucket = Variable.get('DATA_EXTRACT_AWS_BUCKET')
 bq_aws_connection_name = Variable.get('BQ_AWS_CONNECTION_NAME')
 
 aws_to_gcs_transfer_body = {
-  DESCRIPTION: 'Transfer of BQ Extract ' + EXTRACT_ID_EXPR,
+  DESCRIPTION: 'Transfer of BQ Omni Extract ' + EXTRACT_ID_EXPR,
   STATUS: GcpTransferJobsStatus.ENABLED,
   PROJECT_ID: transfer_jobs_project_id,
   SCHEDULE: {
@@ -126,18 +138,16 @@ DEFAULT_DAG_ARGS = {
 }
 
 def validate_request(**context):
-  # TODO: add real validation
+  # In production installation a real validation would be advised.
   print("Context conf: ", context['dag_run'].conf)
 
 def check_transfer_status_function(**context):
   ti = context['ti']
   transfer_status = ti.xcom_pull(task_ids=OP_WAIT_FOR_TRANSFER_COMPLETION,
-                                 key='sensed_operations')[0]['metadata'][
-    'status']
+                    key='sensed_operations')[0]['metadata']['status']
   if transfer_status != 'SUCCESS':
     raise AirflowException(
         'Data transfer job failed; status: ' + transfer_status)
-
 
 def is_import_into_big_query_needed(**context):
   config = context['dag_run'].conf
@@ -151,7 +161,7 @@ def is_import_into_big_query_needed(**context):
 # Setting schedule_interval to None as this DAG is externally triggered by
 # a Cloud Function
 with models.DAG(dag_id='bq-data-export',
-                description='BigQuery Data Export and Transfer to GCS',
+                description='BigQuery Data Export and Transfer',
                 schedule_interval=None, default_args=DEFAULT_DAG_ARGS) as dag:
   validation = python_operator.PythonOperator(task_id='validate-request',
                                               python_callable=validate_request,
@@ -178,7 +188,7 @@ with models.DAG(dag_id='bq-data-export',
   )
 
   bigquery_export = bigquery_operator.BigQueryOperator(
-      task_id='export-to-bigquery',
+      task_id='extract-and-export-data',
       sql=(
           'EXPORT DATA WITH CONNECTION `' + bq_aws_connection_name + '` '
                 'OPTIONS(uri=\'s3://' + data_extract_aws_bucket + '/'
